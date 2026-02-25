@@ -101,6 +101,8 @@
       gap:8px;
       margin-top:4px;
       flex:1;
+      overflow:auto;
+      padding-right:2px;
     }
     .nav button{
       appearance:none;
@@ -183,6 +185,11 @@
       font-weight:700;
       letter-spacing:.4px;
       color: var(--text);
+      text-align:center;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 52%;
     }
     .actions{
       display:flex;
@@ -286,10 +293,10 @@
       font-family: var(--mono);
     }
 
-    /* Responsive */
     @media (max-width: 900px){
       .app{grid-template-columns: 76px 1fr}
       .grid{grid-template-columns: 1fr}
+      .title{max-width: 42%}
     }
   </style>
 </head>
@@ -309,15 +316,23 @@
             <button class="active" data-page="home">
               <div class="ico">🏠</div><div>Home</div>
             </button>
+
             <button data-page="tools">
               <div class="ico">🧰</div><div>Tools</div>
             </button>
+
+            <button data-page="airfields">
+              <div class="ico">🗺️</div><div>Airfields</div>
+            </button>
+
             <button data-page="links">
               <div class="ico">🔗</div><div>Links</div>
             </button>
+
             <button data-page="checklists">
               <div class="ico">✅</div><div>Checklists</div>
             </button>
+
             <button data-page="settings">
               <div class="ico">⚙️</div><div>Settings</div>
             </button>
@@ -353,6 +368,17 @@
   </div>
 
 <script>
+  // --- Utilities (must exist early: used by tool viewport and pages) ---
+  function escapeHtml(str){
+    return String(str ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+  function escapeAttr(str){ return escapeHtml(str).replaceAll("`","&#096;"); }
+
   // --- Simple "router" + state ---
   const $ = (q) => document.querySelector(q);
   const nav = $("#nav");
@@ -394,6 +420,45 @@
     localStorage.setItem(LS.notes, v);
   }
 
+  // --- Tool loader (iframe viewport) ---
+  const TOOL = { currentUrl: null, height: 650 };
+
+  function renderToolViewport({ title, url, openExternal=true }) {
+    TOOL.currentUrl = url;
+
+    pageTitle.textContent = title || "Tool";
+
+    screen.innerHTML = `
+      <div class="card" style="padding:0; overflow:hidden">
+        <div style="display:flex; gap:8px; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.06); background: rgba(15,22,34,.85)">
+          <div class="badge" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:70%">
+            ${escapeHtml(url)}
+          </div>
+          <div style="display:flex; gap:8px; align-items:center">
+            <button class="btn" id="toolReload">Reload</button>
+            ${openExternal ? `<button class="btn accent" id="toolOpen">Open</button>` : ``}
+          </div>
+        </div>
+
+        <iframe
+          id="toolFrame"
+          src="${escapeAttr(url)}"
+          style="width:100%;height:${TOOL.height}px;border:0;background:rgba(0,0,0,.18)"
+          allow="clipboard-read; clipboard-write; fullscreen"
+          referrerpolicy="no-referrer"
+        ></iframe>
+      </div>
+    `;
+
+    document.getElementById("toolReload").onclick = () => {
+      const f = document.getElementById("toolFrame");
+      f.src = TOOL.currentUrl + (TOOL.currentUrl.includes("?") ? "&" : "?") + "t=" + Date.now();
+    };
+
+    const openBtn = document.getElementById("toolOpen");
+    if (openBtn) openBtn.onclick = () => window.open(url, "_blank", "noopener,noreferrer");
+  }
+
   // --- Clock ---
   function tick(){
     const d = new Date();
@@ -415,7 +480,7 @@
         <div class="grid">
           <div class="card">
             <h3>Quick Notes</h3>
-            <p class="sub">Scratchpad saved locally (great for clearances, stand/gate, QNH, etc.).</p>
+            <p class="sub">Scratchpad saved locally (clearances, stand/gate, QNH, etc.).</p>
             <textarea id="notes" placeholder="Type here...">${escapeHtml(notes)}</textarea>
             <div class="row" style="margin-top:10px">
               <button class="btn accent" id="saveNotes">Save</button>
@@ -425,7 +490,7 @@
 
           <div class="card">
             <h3>Quick Links</h3>
-            <p class="sub">Launch external sites. Later you can swap to embedded modules/Electron.</p>
+            <p class="sub">Launch external sites.</p>
             <div class="linklist" id="linklist"></div>
           </div>
 
@@ -456,7 +521,7 @@
 
           <div class="card">
             <h3>Timer</h3>
-            <p class="sub">Simple UTC timer for holds, legs, approach brief pacing.</p>
+            <p class="sub">Simple UTC timer for holds, legs, approach pacing.</p>
             <div class="row">
               <button class="btn accent" id="tStart">Start</button>
               <button class="btn" id="tStop">Stop</button>
@@ -496,132 +561,46 @@
 
     tools(){
       pageName.textContent = "TOOLS";
-      pageTitle.textContent = "Mini Tools";
+      pageTitle.textContent = "Tools";
 
       screen.innerHTML = `
         <div class="grid">
           <div class="card">
-            <h3>Fuel uplift helper (basic)</h3>
-            <p class="sub">Quick math: required - current = uplift. (Add your own taxi/cont/extra logic later.)</p>
+            <h3>Embedded Tools</h3>
+            <p class="sub">Open your GitHub Pages tools inside the EFB screen.</p>
             <div class="row">
-              <div style="flex:1; min-width:220px">
-                <label class="badge">Current fuel</label>
-                <input id="fCur" class="mini" inputmode="decimal" placeholder="e.g. 3.2">
-              </div>
-              <div style="flex:1; min-width:220px">
-                <label class="badge">Required fuel</label>
-                <input id="fReq" class="mini" inputmode="decimal" placeholder="e.g. 6.0">
-              </div>
+              <button class="btn accent" id="goAirfields">Airfield Briefs</button>
             </div>
-            <div class="kv">
-              <div>
-                <div class="k">Uplift</div>
-                <div class="v" id="fUp">—</div>
-              </div>
-              <div>
-                <div class="k">Unit</div>
-                <select id="fUnit">
-                  <option value="t">tonnes</option>
-                  <option value="kg">kg</option>
-                  <option value="lb">lb</option>
-                </select>
-              </div>
-            </div>
+            <p class="sub" style="margin-top:10px">
+              Add more buttons here as you create more pages under <span class="mini">/apps</span>.
+            </p>
           </div>
 
           <div class="card">
-            <h3>Calculator</h3>
-            <p class="sub">Tiny scratch calc (supports + - * / and parentheses).</p>
-            <input id="expr" class="mini" placeholder="e.g. (32000-3000)/300">
-            <div class="row" style="margin-top:10px">
-              <button class="btn accent" id="eval">Evaluate</button>
-              <div class="mini" id="res" style="font-size:18px">—</div>
-            </div>
-          </div>
-
-          <div class="card">
-            <h3>Unit conversions (starter)</h3>
-            <p class="sub">Knots ↔ km/h, ft ↔ m.</p>
+            <h3>External</h3>
+            <p class="sub">Sometimes you’ll still want a full browser tab.</p>
             <div class="row">
-              <div style="flex:1; min-width:220px">
-                <label class="badge">Knots</label>
-                <input id="kt" class="mini" inputmode="decimal" placeholder="e.g. 250">
-              </div>
-              <div style="flex:1; min-width:220px">
-                <label class="badge">km/h</label>
-                <input id="kmh" class="mini" inputmode="decimal" placeholder="e.g. 463">
-              </div>
+              <button class="btn" id="openSimBrief">SimBrief</button>
+              <button class="btn" id="openNavigraph">Navigraph</button>
+              <button class="btn" id="openVatsim">VATSIM</button>
             </div>
-            <div class="row" style="margin-top:10px">
-              <div style="flex:1; min-width:220px">
-                <label class="badge">Feet</label>
-                <input id="ft" class="mini" inputmode="decimal" placeholder="e.g. 35000">
-              </div>
-              <div style="flex:1; min-width:220px">
-                <label class="badge">Meters</label>
-                <input id="m" class="mini" inputmode="decimal" placeholder="e.g. 10668">
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <h3>Planned modules</h3>
-            <p class="sub">Examples of what fits nicely in this layout.</p>
-            <ul style="margin:0; padding-left:18px; color:var(--muted); font-size:13px; line-height:1.55">
-              <li>W&B quick sheet (ZFW/TOW margin)</li>
-              <li>ATIS decoder + runway crosswind</li>
-              <li>RJ flows / PM callouts</li>
-              <li>Hold entry helper</li>
-              <li>CAPPS→Falcon personal training checklist</li>
-            </ul>
           </div>
         </div>
       `;
 
-      // Fuel uplift
-      const updFuel = () => {
-        const cur = parseFloat($("#fCur").value) || 0;
-        const req = parseFloat($("#fReq").value) || 0;
-        const up = Math.max(0, req - cur);
-        $("#fUp").textContent = up ? up.toFixed(2) + " " + $("#fUnit").value : "—";
-      };
-      $("#fCur").addEventListener("input", updFuel);
-      $("#fReq").addEventListener("input", updFuel);
-      $("#fUnit").addEventListener("change", updFuel);
+      $("#goAirfields").onclick = () => setActive("airfields");
 
-      // Calculator (safe-ish: only allow numbers/operators)
-      $("#eval").onclick = () => {
-        const raw = $("#expr").value;
-        if(!/^[0-9+\-*/().\s]+$/.test(raw)){ $("#res").textContent = "Invalid"; return; }
-        try { $("#res").textContent = String(Function("return ("+raw+")")()); }
-        catch { $("#res").textContent = "Error"; }
-      };
+      $("#openSimBrief").onclick = () => window.open("https://www.simbrief.com/home/", "_blank", "noopener,noreferrer");
+      $("#openNavigraph").onclick = () => window.open("https://charts.navigraph.com/", "_blank", "noopener,noreferrer");
+      $("#openVatsim").onclick = () => window.open("https://www.vatsim.net/", "_blank", "noopener,noreferrer");
+    },
 
-      // Conversions
-      let lock = false;
-      $("#kt").addEventListener("input", () => {
-        if(lock) return; lock = true;
-        const kt = parseFloat($("#kt").value);
-        $("#kmh").value = isFinite(kt) ? (kt * 1.852).toFixed(1) : "";
-        lock = false;
-      });
-      $("#kmh").addEventListener("input", () => {
-        if(lock) return; lock = true;
-        const kmh = parseFloat($("#kmh").value);
-        $("#kt").value = isFinite(kmh) ? (kmh / 1.852).toFixed(1) : "";
-        lock = false;
-      });
-      $("#ft").addEventListener("input", () => {
-        if(lock) return; lock = true;
-        const ft = parseFloat($("#ft").value);
-        $("#m").value = isFinite(ft) ? (ft * 0.3048).toFixed(0) : "";
-        lock = false;
-      });
-      $("#m").addEventListener("input", () => {
-        if(lock) return; lock = true;
-        const m = parseFloat($("#m").value);
-        $("#ft").value = isFinite(m) ? (m / 0.3048).toFixed(0) : "";
-        lock = false;
+    // Embeds your Airfield Briefs app (hosted in the same repo under /apps)
+    airfields(){
+      pageName.textContent = "AIRFIELDS";
+      renderToolViewport({
+        title: "Airfield Briefs",
+        url: "https://gavlar85.github.io/efb/apps/airfields.html"
       });
     },
 
@@ -629,19 +608,17 @@
       pageName.textContent = "LINKS";
       pageTitle.textContent = "External Links";
 
-      const links = loadLinks();
-
       screen.innerHTML = `
         <div class="grid">
           <div class="card">
             <h3>Launch</h3>
-            <p class="sub">These open in a new tab for now. Later: embed via Electron or in-app webview.</p>
+            <p class="sub">These open in a new tab.</p>
             <div class="linklist" id="linksRun"></div>
           </div>
 
           <div class="card">
             <h3>Manage</h3>
-            <p class="sub">Add your own tools: company portals, charts, trackers, PDFs, etc.</p>
+            <p class="sub">Add your own links (saved locally).</p>
             <div class="row">
               <div style="flex:1; min-width:220px">
                 <label class="badge">Name</label>
@@ -705,8 +682,7 @@
         <div class="card">
           <h3>Drop-in checklist modules</h3>
           <p class="sub">
-            This page is a placeholder. Later you can load your existing reactive checklist UI here
-            (either as embedded HTML sections, or an iframe pointing at your checklist file).
+            Placeholder. Later we can embed your reactive checklist UI here the same way as Airfields.
           </p>
           <div class="row">
             <button class="btn accent" id="demoChk">Load demo checklist</button>
@@ -738,7 +714,7 @@
         <div class="grid">
           <div class="card">
             <h3>Display</h3>
-            <p class="sub">Basic toggles. You can add font scaling, brightness, and “cockpit mode”.</p>
+            <p class="sub">Basic toggles.</p>
             <div class="row">
               <button class="btn ${night ? "accent":""}" id="toggleNight">${night ? "Night mode: ON" : "Night mode: OFF"}</button>
             </div>
@@ -746,7 +722,7 @@
 
           <div class="card">
             <h3>Data</h3>
-            <p class="sub">This EFB stores notes and links in localStorage.</p>
+            <p class="sub">Notes + links are stored in localStorage.</p>
             <div class="row">
               <button class="btn" id="exportData">Export JSON</button>
               <button class="btn" id="importData">Import JSON</button>
@@ -824,6 +800,7 @@
   // --- Nav logic ---
   function setActive(page){
     [...nav.querySelectorAll("button")].forEach(b => b.classList.toggle("active", b.dataset.page===page));
+    if(!pages[page]) return;
     pages[page]();
   }
   nav.addEventListener("click", (e) => {
@@ -845,32 +822,19 @@
     applyNight();
   };
   $("#btnClear").onclick = () => {
-    // Clear notes only (safe default)
     setNotes("");
-    if(pages.home) pages.home();
+    pages.home();
+    setActive("home");
   };
 
   function applyNight(){
     const night = localStorage.getItem(LS.night) === "1";
-    // Simple tweak: dim accents a bit
     document.documentElement.style.setProperty("--accent", night ? "#2f87e6" : "#4aa3ff");
   }
   applyNight();
-
-  // --- Utilities ---
-  function escapeHtml(str){
-    return String(str)
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
-  }
-  function escapeAttr(str){ return escapeHtml(str).replaceAll("`","&#096;"); }
 
   // Boot
   setActive("home");
 </script>
 </body>
-
 </html>
