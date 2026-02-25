@@ -1,25 +1,15 @@
 {
-    "EGGW": {
-      "name": "London Luton",
-      "country": "GB",
-      "tags": [],
-      "elevation_ft": 526,
-      "transition_alt_ft": 6000,
-      "comms": {
-        "atis": "",
-        "ground": "",
-        "tower": "",
-        "approach": ""
-      },
-      "parking_taxi": "",
-      "handling": "",
-      "notes": "",
-      "threats": "",
-      "links": [],
-      "runways": [
-              {
-        "id": "08",
-        "heading_deg": 74,
+  "EGSS": {
+    "name": "London Stansted",
+    "country": "GB",
+    "tags": ["UK", "BA"],
+    "elevation_ft": 348,
+    "transition_alt_ft": 6000,
+
+    "runways": [
+      {
+        "id": "04",
+        "heading_deg": 42,
         "category": "CAT III",
         "tora_m": 3049,
         "width_m": 46,
@@ -27,48 +17,29 @@
         "approaches": ["ILS", "RNAV"]
       },
       {
-        "id": "26",
-        "heading_deg": 254,
+        "id": "22",
+        "heading_deg": 222,
         "category": "CAT III",
         "tora_m": 3049,
         "width_m": 46,
         "lda_m": 2748,
         "approaches": ["ILS", "RNAV"]
       }
-      ],
-      "departure": {
-        "nadp": "NADP 2",
-        "thrust_reduction_ft": 1530,
-        "acceleration_ft": 1530,
-        "engine_out_sids": []
-      },
-      "gotcha": ""
-    },
-    "EGLL": {
-      "name": "London Heathrow",
-      "country": "",
-      "tags": [],
-      "elevation_ft": null,
-      "transition_alt_ft": null,
-      "comms": {
-        "atis": "",
-        "ground": "",
-        "tower": "",
-        "approach": ""
-      },
-      "parking_taxi": "",
-      "handling": "",
-      "notes": "",
-      "threats": "",
-      "links": [],
-      "runways": [],
-      "departure": {
-        "nadp": "",
-        "thrust_reduction_ft": null,
-        "acceleration_ft": null,
-        "engine_out_sids": []
-      },
-      "gotcha": ""
-    }
-  }
+    ],
 
+    "departure": {
+      "nadp": "NADP 2",
+      "thrust_reduction_ft": 1350,
+      "acceleration_ft": 1350,
+      "engine_out_sids": [
+        { "runway": "04", "acc_ft": 1900, "eosid": "042° to 25 NM and Hold" },
+        { "runway": "22", "acc_ft": 1900, "eosid": "222° to 20 NM and Hold" }
+      ]
+    },
+
+    "notes": "Add local notes here (hotspots, taxi gotchas, stand quirks).",
+    "links": [
+      { "label": "Charts", "url": "https://example.com" }
+    ]
+  }
+}
