@@ -1,0 +1,875 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Local EFB</title>
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --panel:#111825;
+      --panel2:#0f1622;
+      --line:#1f2a3b;
+      --text:#e7eefc;
+      --muted:#9bb0d1;
+      --accent:#4aa3ff;
+      --good:#3ee6a8;
+      --warn:#ffcc66;
+      --bad:#ff6b6b;
+      --shadow: 0 18px 40px rgba(0,0,0,.45);
+      --radius: 18px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: var(--sans);
+      background: radial-gradient(1200px 700px at 20% 10%, rgba(74,163,255,.18), transparent 50%),
+                  radial-gradient(1000px 600px at 80% 20%, rgba(62,230,168,.10), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+
+    /* Tablet frame */
+    .tablet{
+      width:min(1220px, 100%);
+      height:min(760px, 100%);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding:14px;
+      position:relative;
+    }
+    .bezel{
+      background: linear-gradient(180deg, #0d121a, #070a10);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius: 22px;
+      height:100%;
+      padding:12px;
+      position:relative;
+      overflow:hidden;
+    }
+    .camera{
+      position:absolute;
+      top:10px; left:50%;
+      transform:translateX(-50%);
+      width:10px; height:10px;
+      border-radius:50%;
+      background:rgba(255,255,255,.08);
+      box-shadow: 0 0 0 4px rgba(255,255,255,.03);
+      z-index:10;
+    }
+
+    /* App layout */
+    .app{
+      height:100%;
+      display:grid;
+      grid-template-columns: 92px 1fr;
+      gap:12px;
+    }
+
+    /* Sidebar */
+    .sidebar{
+      background: rgba(17,24,37,.9);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius: var(--radius);
+      padding:10px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .brand{
+      padding:10px 8px;
+      border-radius:14px;
+      background: rgba(15,22,34,.75);
+      border:1px solid rgba(255,255,255,.06);
+      text-align:center;
+      line-height:1.15;
+    }
+    .brand .t{font-weight:700; letter-spacing:.6px}
+    .brand .s{font-size:12px; color:var(--muted); margin-top:4px}
+    .nav{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:4px;
+      flex:1;
+    }
+    .nav button{
+      appearance:none;
+      border:1px solid rgba(255,255,255,.06);
+      background: rgba(15,22,34,.65);
+      color:var(--text);
+      border-radius:14px;
+      padding:10px 8px;
+      cursor:pointer;
+      font-size:12px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:6px;
+      transition:.15s transform,.15s background,.15s border;
+    }
+    .nav button:hover{transform: translateY(-1px); border-color: rgba(74,163,255,.35)}
+    .nav button.active{
+      background: rgba(74,163,255,.18);
+      border-color: rgba(74,163,255,.55);
+      box-shadow: inset 0 0 0 1px rgba(74,163,255,.25);
+    }
+    .nav .ico{
+      width:28px;height:28px;border-radius:10px;
+      display:grid;place-items:center;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.06);
+      font-family: var(--mono);
+      font-weight:700;
+      color: rgba(231,238,252,.9);
+    }
+    .sidefoot{
+      display:flex;
+      gap:8px;
+    }
+    .pill{
+      flex:1;
+      padding:10px 8px;
+      border-radius:14px;
+      background: rgba(15,22,34,.65);
+      border:1px solid rgba(255,255,255,.06);
+      color:var(--muted);
+      font-size:12px;
+      text-align:center;
+      cursor:pointer;
+    }
+    .pill:hover{border-color: rgba(255,255,255,.18); color:var(--text)}
+
+    /* Main */
+    .main{
+      background: rgba(17,24,37,.65);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius: var(--radius);
+      overflow:hidden;
+      display:grid;
+      grid-template-rows: 52px 1fr;
+    }
+    .topbar{
+      background: rgba(15,22,34,.85);
+      border-bottom:1px solid rgba(255,255,255,.06);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px 14px;
+      gap:12px;
+    }
+    .status{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      color:var(--muted);
+      font-size:12px;
+      font-family: var(--mono);
+    }
+    .dot{width:8px;height:8px;border-radius:50%}
+    .dot.good{background: var(--good)}
+    .dot.warn{background: var(--warn)}
+    .dot.bad{background: var(--bad)}
+    .title{
+      font-weight:700;
+      letter-spacing:.4px;
+      color: var(--text);
+    }
+    .actions{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .btn{
+      border:1px solid rgba(255,255,255,.06);
+      background: rgba(255,255,255,.04);
+      color:var(--text);
+      padding:8px 10px;
+      border-radius:12px;
+      cursor:pointer;
+      font-size:12px;
+    }
+    .btn:hover{border-color: rgba(74,163,255,.35)}
+    .btn.accent{
+      background: rgba(74,163,255,.18);
+      border-color: rgba(74,163,255,.45);
+    }
+
+    .screen{
+      padding:14px;
+      overflow:auto;
+    }
+
+    /* Cards + layout */
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    .card{
+      background: rgba(15,22,34,.72);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius: 16px;
+      padding:12px;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.15);
+    }
+    .card h3{
+      margin:0 0 8px 0;
+      font-size:14px;
+      letter-spacing:.2px;
+    }
+    .sub{
+      color:var(--muted);
+      font-size:12px;
+      margin:0 0 10px 0;
+      line-height:1.35;
+    }
+    .row{display:flex; gap:10px; flex-wrap:wrap}
+    input, textarea, select{
+      width:100%;
+      background: rgba(0,0,0,.22);
+      border:1px solid rgba(255,255,255,.08);
+      color:var(--text);
+      padding:10px 10px;
+      border-radius:12px;
+      outline:none;
+      font-size:13px;
+      font-family: var(--sans);
+    }
+    textarea{min-height:110px; resize:vertical}
+    .mini{
+      font-family: var(--mono);
+      letter-spacing:.2px;
+    }
+    .kv{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+    .kv .k{
+      color:var(--muted);
+      font-size:11px;
+      font-family: var(--mono);
+      margin-bottom:6px;
+    }
+    .kv .v{
+      font-size:18px;
+      font-family: var(--mono);
+    }
+    .linklist a{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      text-decoration:none;
+      color:var(--text);
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.06);
+      background: rgba(0,0,0,.14);
+      margin-top:8px;
+    }
+    .linklist a:hover{border-color: rgba(74,163,255,.35)}
+    .badge{
+      font-size:11px;
+      color:var(--muted);
+      font-family: var(--mono);
+    }
+
+    /* Responsive */
+    @media (max-width: 900px){
+      .app{grid-template-columns: 76px 1fr}
+      .grid{grid-template-columns: 1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="tablet">
+    <div class="bezel">
+      <div class="camera" aria-hidden="true"></div>
+
+      <div class="app">
+        <aside class="sidebar">
+          <div class="brand">
+            <div class="t">LOCAL EFB</div>
+            <div class="s">tools • links • notes</div>
+          </div>
+
+          <nav class="nav" id="nav">
+            <button class="active" data-page="home">
+              <div class="ico">🏠</div><div>Home</div>
+            </button>
+            <button data-page="tools">
+              <div class="ico">🧰</div><div>Tools</div>
+            </button>
+            <button data-page="links">
+              <div class="ico">🔗</div><div>Links</div>
+            </button>
+            <button data-page="checklists">
+              <div class="ico">✅</div><div>Checklists</div>
+            </button>
+            <button data-page="settings">
+              <div class="ico">⚙️</div><div>Settings</div>
+            </button>
+          </nav>
+
+          <div class="sidefoot">
+            <div class="pill" id="btnNight">Night</div>
+            <div class="pill" id="btnClear">Clear</div>
+          </div>
+        </aside>
+
+        <main class="main">
+          <header class="topbar">
+            <div class="status">
+              <span class="dot good" id="connDot" title="Local mode"></span>
+              <span id="clock">--:--:--Z</span>
+              <span>•</span>
+              <span class="badge" id="pageName">HOME</span>
+            </div>
+
+            <div class="title" id="pageTitle">EFB Dashboard</div>
+
+            <div class="actions">
+              <button class="btn" id="btnPop">Pop-out</button>
+              <button class="btn accent" id="btnPin">Pin notes</button>
+            </div>
+          </header>
+
+          <section class="screen" id="screen"></section>
+        </main>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // --- Simple "router" + state ---
+  const $ = (q) => document.querySelector(q);
+  const nav = $("#nav");
+  const screen = $("#screen");
+  const pageName = $("#pageName");
+  const pageTitle = $("#pageTitle");
+
+  const LS = {
+    notes: "efb_notes",
+    links: "efb_links",
+    night: "efb_night"
+  };
+
+  let pinnedNotes = false;
+
+  const defaultLinks = [
+    { name: "SimBrief (dispatch)", url: "https://www.simbrief.com/home/", tag: "web" },
+    { name: "Navigraph Charts", url: "https://charts.navigraph.com/", tag: "web" },
+    { name: "VATSIM", url: "https://www.vatsim.net/", tag: "web" },
+    { name: "Eurocontrol NOP", url: "https://www.public.nm.eurocontrol.int/PUBPORTAL/gateway/spec/index.html", tag: "web" }
+  ];
+
+  function loadLinks(){
+    try {
+      const raw = localStorage.getItem(LS.links);
+      if(!raw) return defaultLinks;
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : defaultLinks;
+    } catch { return defaultLinks; }
+  }
+  function saveLinks(list){
+    localStorage.setItem(LS.links, JSON.stringify(list));
+  }
+
+  function getNotes(){
+    return localStorage.getItem(LS.notes) || "";
+  }
+  function setNotes(v){
+    localStorage.setItem(LS.notes, v);
+  }
+
+  // --- Clock ---
+  function tick(){
+    const d = new Date();
+    const t = d.toISOString().slice(11,19) + "Z";
+    $("#clock").textContent = t;
+  }
+  setInterval(tick, 500);
+  tick();
+
+  // --- Pages ---
+  const pages = {
+    home(){
+      pageName.textContent = "HOME";
+      pageTitle.textContent = "EFB Dashboard";
+
+      const notes = getNotes();
+
+      screen.innerHTML = `
+        <div class="grid">
+          <div class="card">
+            <h3>Quick Notes</h3>
+            <p class="sub">Scratchpad saved locally (great for clearances, stand/gate, QNH, etc.).</p>
+            <textarea id="notes" placeholder="Type here...">${escapeHtml(notes)}</textarea>
+            <div class="row" style="margin-top:10px">
+              <button class="btn accent" id="saveNotes">Save</button>
+              <button class="btn" id="copyNotes">Copy</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Quick Links</h3>
+            <p class="sub">Launch external sites. Later you can swap to embedded modules/Electron.</p>
+            <div class="linklist" id="linklist"></div>
+          </div>
+
+          <div class="card">
+            <h3>TOD / Descent Helper</h3>
+            <p class="sub">Rule-of-thumb: distance (NM) ≈ altitude to lose (ft) / 300.</p>
+            <div class="row">
+              <div style="flex:1; min-width:220px">
+                <label class="badge">Current altitude (ft)</label>
+                <input id="altNow" class="mini" inputmode="numeric" placeholder="e.g. 32000">
+              </div>
+              <div style="flex:1; min-width:220px">
+                <label class="badge">Target altitude (ft)</label>
+                <input id="altTgt" class="mini" inputmode="numeric" placeholder="e.g. 3000">
+              </div>
+            </div>
+            <div class="kv">
+              <div>
+                <div class="k">Altitude to lose</div>
+                <div class="v" id="altLose">—</div>
+              </div>
+              <div>
+                <div class="k">Start descent in</div>
+                <div class="v" id="todNm">—</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Timer</h3>
+            <p class="sub">Simple UTC timer for holds, legs, approach brief pacing.</p>
+            <div class="row">
+              <button class="btn accent" id="tStart">Start</button>
+              <button class="btn" id="tStop">Stop</button>
+              <button class="btn" id="tReset">Reset</button>
+              <div class="badge" style="align-self:center">Elapsed</div>
+              <div class="mini" id="tOut" style="font-size:18px">00:00</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Notes
+      $("#saveNotes").onclick = () => setNotes($("#notes").value);
+      $("#copyNotes").onclick = async () => {
+        try { await navigator.clipboard.writeText($("#notes").value); } catch {}
+      };
+      $("#notes").addEventListener("input", (e) => setNotes(e.target.value));
+
+      // Links
+      renderLinks("#linklist");
+
+      // TOD calc
+      const calcTOD = () => {
+        const a = parseInt($("#altNow").value.replace(/[^0-9]/g,"") || "0", 10);
+        const b = parseInt($("#altTgt").value.replace(/[^0-9]/g,"") || "0", 10);
+        const lose = Math.max(0, a - b);
+        const nm = Math.round((lose / 300) * 10) / 10;
+        $("#altLose").textContent = lose ? lose.toLocaleString() + " ft" : "—";
+        $("#todNm").textContent = lose ? nm + " NM" : "—";
+      };
+      $("#altNow").addEventListener("input", calcTOD);
+      $("#altTgt").addEventListener("input", calcTOD);
+
+      // Timer
+      setupTimer();
+    },
+
+    tools(){
+      pageName.textContent = "TOOLS";
+      pageTitle.textContent = "Mini Tools";
+
+      screen.innerHTML = `
+        <div class="grid">
+          <div class="card">
+            <h3>Fuel uplift helper (basic)</h3>
+            <p class="sub">Quick math: required - current = uplift. (Add your own taxi/cont/extra logic later.)</p>
+            <div class="row">
+              <div style="flex:1; min-width:220px">
+                <label class="badge">Current fuel</label>
+                <input id="fCur" class="mini" inputmode="decimal" placeholder="e.g. 3.2">
+              </div>
+              <div style="flex:1; min-width:220px">
+                <label class="badge">Required fuel</label>
+                <input id="fReq" class="mini" inputmode="decimal" placeholder="e.g. 6.0">
+              </div>
+            </div>
+            <div class="kv">
+              <div>
+                <div class="k">Uplift</div>
+                <div class="v" id="fUp">—</div>
+              </div>
+              <div>
+                <div class="k">Unit</div>
+                <select id="fUnit">
+                  <option value="t">tonnes</option>
+                  <option value="kg">kg</option>
+                  <option value="lb">lb</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Calculator</h3>
+            <p class="sub">Tiny scratch calc (supports + - * / and parentheses).</p>
+            <input id="expr" class="mini" placeholder="e.g. (32000-3000)/300">
+            <div class="row" style="margin-top:10px">
+              <button class="btn accent" id="eval">Evaluate</button>
+              <div class="mini" id="res" style="font-size:18px">—</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Unit conversions (starter)</h3>
+            <p class="sub">Knots ↔ km/h, ft ↔ m.</p>
+            <div class="row">
+              <div style="flex:1; min-width:220px">
+                <label class="badge">Knots</label>
+                <input id="kt" class="mini" inputmode="decimal" placeholder="e.g. 250">
+              </div>
+              <div style="flex:1; min-width:220px">
+                <label class="badge">km/h</label>
+                <input id="kmh" class="mini" inputmode="decimal" placeholder="e.g. 463">
+              </div>
+            </div>
+            <div class="row" style="margin-top:10px">
+              <div style="flex:1; min-width:220px">
+                <label class="badge">Feet</label>
+                <input id="ft" class="mini" inputmode="decimal" placeholder="e.g. 35000">
+              </div>
+              <div style="flex:1; min-width:220px">
+                <label class="badge">Meters</label>
+                <input id="m" class="mini" inputmode="decimal" placeholder="e.g. 10668">
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Planned modules</h3>
+            <p class="sub">Examples of what fits nicely in this layout.</p>
+            <ul style="margin:0; padding-left:18px; color:var(--muted); font-size:13px; line-height:1.55">
+              <li>W&B quick sheet (ZFW/TOW margin)</li>
+              <li>ATIS decoder + runway crosswind</li>
+              <li>RJ flows / PM callouts</li>
+              <li>Hold entry helper</li>
+              <li>CAPPS→Falcon personal training checklist</li>
+            </ul>
+          </div>
+        </div>
+      `;
+
+      // Fuel uplift
+      const updFuel = () => {
+        const cur = parseFloat($("#fCur").value) || 0;
+        const req = parseFloat($("#fReq").value) || 0;
+        const up = Math.max(0, req - cur);
+        $("#fUp").textContent = up ? up.toFixed(2) + " " + $("#fUnit").value : "—";
+      };
+      $("#fCur").addEventListener("input", updFuel);
+      $("#fReq").addEventListener("input", updFuel);
+      $("#fUnit").addEventListener("change", updFuel);
+
+      // Calculator (safe-ish: only allow numbers/operators)
+      $("#eval").onclick = () => {
+        const raw = $("#expr").value;
+        if(!/^[0-9+\-*/().\s]+$/.test(raw)){ $("#res").textContent = "Invalid"; return; }
+        try { $("#res").textContent = String(Function("return ("+raw+")")()); }
+        catch { $("#res").textContent = "Error"; }
+      };
+
+      // Conversions
+      let lock = false;
+      $("#kt").addEventListener("input", () => {
+        if(lock) return; lock = true;
+        const kt = parseFloat($("#kt").value);
+        $("#kmh").value = isFinite(kt) ? (kt * 1.852).toFixed(1) : "";
+        lock = false;
+      });
+      $("#kmh").addEventListener("input", () => {
+        if(lock) return; lock = true;
+        const kmh = parseFloat($("#kmh").value);
+        $("#kt").value = isFinite(kmh) ? (kmh / 1.852).toFixed(1) : "";
+        lock = false;
+      });
+      $("#ft").addEventListener("input", () => {
+        if(lock) return; lock = true;
+        const ft = parseFloat($("#ft").value);
+        $("#m").value = isFinite(ft) ? (ft * 0.3048).toFixed(0) : "";
+        lock = false;
+      });
+      $("#m").addEventListener("input", () => {
+        if(lock) return; lock = true;
+        const m = parseFloat($("#m").value);
+        $("#ft").value = isFinite(m) ? (m / 0.3048).toFixed(0) : "";
+        lock = false;
+      });
+    },
+
+    links(){
+      pageName.textContent = "LINKS";
+      pageTitle.textContent = "External Links";
+
+      const links = loadLinks();
+
+      screen.innerHTML = `
+        <div class="grid">
+          <div class="card">
+            <h3>Launch</h3>
+            <p class="sub">These open in a new tab for now. Later: embed via Electron or in-app webview.</p>
+            <div class="linklist" id="linksRun"></div>
+          </div>
+
+          <div class="card">
+            <h3>Manage</h3>
+            <p class="sub">Add your own tools: company portals, charts, trackers, PDFs, etc.</p>
+            <div class="row">
+              <div style="flex:1; min-width:220px">
+                <label class="badge">Name</label>
+                <input id="ln" placeholder="e.g. Company Ops Portal">
+              </div>
+              <div style="flex:1; min-width:220px">
+                <label class="badge">URL</label>
+                <input id="lu" placeholder="https://...">
+              </div>
+            </div>
+            <div class="row" style="margin-top:10px">
+              <button class="btn accent" id="addLink">Add</button>
+              <button class="btn" id="resetLinks">Reset to defaults</button>
+            </div>
+            <div style="margin-top:12px">
+              <label class="badge">Current links (click to remove)</label>
+              <div class="linklist" id="linksEdit"></div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const renderAll = () => {
+        renderLinks("#linksRun");
+        renderLinks("#linksEdit", true);
+      };
+      renderAll();
+
+      $("#addLink").onclick = () => {
+        const name = $("#ln").value.trim();
+        const url = $("#lu").value.trim();
+        if(!name || !url) return;
+        const list = loadLinks();
+        list.push({name, url, tag:"web"});
+        saveLinks(list);
+        $("#ln").value = ""; $("#lu").value = "";
+        renderAll();
+      };
+
+      $("#resetLinks").onclick = () => {
+        saveLinks(defaultLinks);
+        renderAll();
+      };
+
+      $("#linksEdit").addEventListener("click", (e) => {
+        const a = e.target.closest("a[data-idx]");
+        if(!a) return;
+        const idx = parseInt(a.dataset.idx, 10);
+        const list = loadLinks();
+        list.splice(idx, 1);
+        saveLinks(list);
+        renderAll();
+      });
+    },
+
+    checklists(){
+      pageName.textContent = "CHECKLISTS";
+      pageTitle.textContent = "Checklists (placeholder)";
+
+      screen.innerHTML = `
+        <div class="card">
+          <h3>Drop-in checklist modules</h3>
+          <p class="sub">
+            This page is a placeholder. Later you can load your existing reactive checklist UI here
+            (either as embedded HTML sections, or an iframe pointing at your checklist file).
+          </p>
+          <div class="row">
+            <button class="btn accent" id="demoChk">Load demo checklist</button>
+          </div>
+          <div id="chkArea" style="margin-top:12px"></div>
+        </div>
+      `;
+
+      $("#demoChk").onclick = () => {
+        $("#chkArea").innerHTML = `
+          <div class="card" style="background:rgba(0,0,0,.14)">
+            <h3>Demo: Before Start</h3>
+            <label class="badge"><input type="checkbox"> Parking brake — SET</label><br/>
+            <label class="badge"><input type="checkbox"> Beacon — ON</label><br/>
+            <label class="badge"><input type="checkbox"> Doors — CLOSED</label><br/>
+            <label class="badge"><input type="checkbox"> FMS — ROUTE VERIFIED</label><br/>
+          </div>
+        `;
+      };
+    },
+
+    settings(){
+      pageName.textContent = "SETTINGS";
+      pageTitle.textContent = "Preferences";
+
+      const night = localStorage.getItem(LS.night) === "1";
+
+      screen.innerHTML = `
+        <div class="grid">
+          <div class="card">
+            <h3>Display</h3>
+            <p class="sub">Basic toggles. You can add font scaling, brightness, and “cockpit mode”.</p>
+            <div class="row">
+              <button class="btn ${night ? "accent":""}" id="toggleNight">${night ? "Night mode: ON" : "Night mode: OFF"}</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Data</h3>
+            <p class="sub">This EFB stores notes and links in localStorage.</p>
+            <div class="row">
+              <button class="btn" id="exportData">Export JSON</button>
+              <button class="btn" id="importData">Import JSON</button>
+            </div>
+            <input id="dataBox" class="mini" style="margin-top:10px" placeholder="Paste JSON here (for import)"/>
+          </div>
+        </div>
+      `;
+
+      $("#toggleNight").onclick = () => {
+        const v = localStorage.getItem(LS.night) === "1" ? "0" : "1";
+        localStorage.setItem(LS.night, v);
+        applyNight();
+        pages.settings();
+      };
+
+      $("#exportData").onclick = () => {
+        const payload = {
+          notes: getNotes(),
+          links: loadLinks(),
+          night: localStorage.getItem(LS.night) === "1"
+        };
+        $("#dataBox").value = JSON.stringify(payload);
+      };
+
+      $("#importData").onclick = () => {
+        try{
+          const obj = JSON.parse($("#dataBox").value);
+          if(typeof obj.notes === "string") setNotes(obj.notes);
+          if(Array.isArray(obj.links)) saveLinks(obj.links);
+          if(typeof obj.night === "boolean") localStorage.setItem(LS.night, obj.night ? "1" : "0");
+          applyNight();
+          alert("Imported.");
+        }catch{
+          alert("Invalid JSON.");
+        }
+      };
+    }
+  };
+
+  function renderLinks(targetSel, removable=false){
+    const el = document.querySelector(targetSel);
+    const list = loadLinks();
+    el.innerHTML = list.map((x,i) => `
+      <a ${removable ? `data-idx="${i}"` : ""} href="${escapeAttr(x.url)}" target="_blank" rel="noopener">
+        <span>${escapeHtml(x.name)}</span>
+        <span class="badge">${removable ? "remove" : (x.tag||"web")}</span>
+      </a>
+    `).join("");
+  }
+
+  // --- Timer ---
+  let t0 = null, tInt = null, elapsed = 0;
+  function setupTimer(){
+    const out = $("#tOut");
+    const fmt = (s) => {
+      const m = Math.floor(s/60), r = s%60;
+      return String(m).padStart(2,"0")+":"+String(r).padStart(2,"0");
+    };
+    const draw = () => out.textContent = fmt(elapsed);
+
+    $("#tStart").onclick = () => {
+      if(tInt) return;
+      t0 = Date.now() - elapsed*1000;
+      tInt = setInterval(() => {
+        elapsed = Math.floor((Date.now()-t0)/1000);
+        draw();
+      }, 250);
+    };
+    $("#tStop").onclick = () => { clearInterval(tInt); tInt=null; };
+    $("#tReset").onclick = () => { elapsed=0; t0=Date.now(); draw(); };
+    draw();
+  }
+
+  // --- Nav logic ---
+  function setActive(page){
+    [...nav.querySelectorAll("button")].forEach(b => b.classList.toggle("active", b.dataset.page===page));
+    pages[page]();
+  }
+  nav.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-page]");
+    if(!btn) return;
+    setActive(btn.dataset.page);
+  });
+
+  // --- Top actions ---
+  $("#btnPop").onclick = () => window.open(window.location.href, "_blank", "noopener,noreferrer,width=1200,height=760");
+  $("#btnPin").onclick = () => {
+    pinnedNotes = !pinnedNotes;
+    alert(pinnedNotes ? "Pinned notes (concept): next step is a floating notes widget." : "Unpinned notes.");
+  };
+
+  $("#btnNight").onclick = () => {
+    const v = localStorage.getItem(LS.night) === "1" ? "0" : "1";
+    localStorage.setItem(LS.night, v);
+    applyNight();
+  };
+  $("#btnClear").onclick = () => {
+    // Clear notes only (safe default)
+    setNotes("");
+    if(pages.home) pages.home();
+  };
+
+  function applyNight(){
+    const night = localStorage.getItem(LS.night) === "1";
+    // Simple tweak: dim accents a bit
+    document.documentElement.style.setProperty("--accent", night ? "#2f87e6" : "#4aa3ff");
+  }
+  applyNight();
+
+  // --- Utilities ---
+  function escapeHtml(str){
+    return String(str)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+  function escapeAttr(str){ return escapeHtml(str).replaceAll("`","&#096;"); }
+
+  // Boot
+  setActive("home");
+</script>
+</body>
+</html>
