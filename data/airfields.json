@@ -2,24 +2,48 @@
   "EGSS": {
     "name": "London Stansted",
     "country": "GB",
-    "tags": ["UK", "HUB", "BA"],
-    "runways": "04/22",
+    "tags": ["UK", "BA"],
     "elevation_ft": 348,
-    "comms": {
-      "atis": "—",
-      "ground": "—",
-      "tower": "—",
-      "approach": "—"
+    "transition_alt_ft": 6000,
+
+    "runways": [
+      {
+        "id": "04",
+        "heading_deg": 42,
+        "category": "CAT III",
+        "tora_m": 3049,
+        "width_m": 46,
+        "lda_m": 2748,
+        "approaches": ["ILS", "RNAV"]
+      },
+      {
+        "id": "22",
+        "heading_deg": 222,
+        "category": "CAT III",
+        "tora_m": 3049,
+        "width_m": 46,
+        "lda_m": 2748,
+        "approaches": ["ILS", "RNAV"]
+      }
+    ],
+
+    "departure": {
+      "nadp": "NADP 2",
+      "thrust_reduction_ft": 1350,
+      "acceleration_ft": 1350,
+      "engine_out_sids": [
+        { "runway": "04", "acc_ft": 1900, "eosid": "042° to 25 NM and Hold" },
+        { "runway": "22", "acc_ft": 1900, "eosid": "222° to 20 NM and Hold" }
+      ]
     },
-    "parking_taxi": "Add stand notes, hotspots, typical taxi routes, holding points.",
-    "handling": "Handling agent notes / who to call / common gotchas.",
-    "notes": "Add your personal airfield brief notes here (PPR, slot habits, curfews, etc.).",
-    "threats": "Construction, hotspots, tricky intersections, common wrong turns, tight stands.",
+
+    "notes": "Add local notes here (hotspots, taxi gotchas, stand quirks).",
     "links": [
-      { "label": "Airport chart pack", "url": "https://example.com" }
+      { "label": "Charts", "url": "https://example.com" }
     ]
-  },
-  "EIDW": {
+  }
+}
+"EIDW": {
     "name": "Dublin",
     "country": "IE",
     "tags": ["IE", "BA"],
