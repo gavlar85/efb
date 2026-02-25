@@ -1,6 +1,6 @@
 {
     "EGGW": {
-      "name": "London Shed Town",
+      "name": "London Luton",
       "country": "GB",
       "tags": [],
       "elevation_ft": 526,
@@ -37,7 +37,7 @@
       }
       ],
       "departure": {
-        "nadp": "2",
+        "nadp": "NADP 2",
         "thrust_reduction_ft": 1530,
         "acceleration_ft": 1530,
         "engine_out_sids": []
