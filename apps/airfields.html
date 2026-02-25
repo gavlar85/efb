@@ -1,1 +1,585 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Airfield Briefs</title>
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --panel:#111825;
+      --panel2:#0f1622;
+      --line:#1f2a3b;
+      --text:#e7eefc;
+      --muted:#9bb0d1;
+      --accent:#4aa3ff;
+      --radius:16px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; padding:14px;
+      background:var(--bg); color:var(--text);
+      font-family:var(--sans);
+    }
+    .top{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+      margin-bottom:12px;
+    }
+    .title{font-weight:800; letter-spacing:.3px}
+    .pill{
+      margin-left:auto;
+      display:flex; gap:8px; flex-wrap:wrap;
+    }
+    button{
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+      padding:8px 10px;
+      border-radius:12px;
+      cursor:pointer;
+      font-size:12px;
+    }
+    button.accent{
+      background: rgba(74,163,255,.18);
+      border-color: rgba(74,163,255,.40);
+    }
+    input, textarea, select{
+      width:100%;
+      background: rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.10);
+      color:var(--text);
+      padding:10px;
+      border-radius:12px;
+      outline:none;
+      font-size:13px;
+    }
+    textarea{min-height:88px; resize:vertical}
+    .layout{
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:12px;
+    }
+    .card{
+      background: rgba(17,24,37,.85);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius: var(--radius);
+      padding:12px;
+    }
+    .sub{color:var(--muted); font-size:12px; margin:6px 0 0}
+    .list{
+      margin-top:10px;
+      display:flex; flex-direction:column; gap:8px;
+      max-height: calc(100vh - 160px);
+      overflow:auto;
+      padding-right:4px;
+    }
+    .item{
+      padding:10px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.14);
+      cursor:pointer;
+    }
+    .item:hover{border-color: rgba(74,163,255,.35)}
+    .item .icao{
+      font-family:var(--mono);
+      font-weight:800;
+      letter-spacing:.6px;
+    }
+    .item .nm{color:var(--muted); font-size:12px; margin-top:2px}
+    .badge{
+      font-family:var(--mono);
+      font-size:11px;
+      color:var(--muted);
+    }
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    .h{
+      display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+      margin-bottom:10px;
+    }
+    .h .icaoBig{
+      font-family:var(--mono);
+      font-size:18px;
+      font-weight:900;
+      letter-spacing:.8px;
+    }
+    .k{color:var(--muted); font-size:11px; font-family:var(--mono); margin-bottom:6px}
+    .links a{
+      display:flex; justify-content:space-between; gap:10px;
+      color:var(--text);
+      text-decoration:none;
+      padding:10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.14);
+      margin-top:8px;
+    }
+    .links a:hover{border-color: rgba(74,163,255,.35)}
+    .row{display:flex; gap:10px; flex-wrap:wrap}
+    .row > *{flex:1; min-width:200px}
+    .warn{color:#ffcc66}
+    @media (max-width: 980px){
+      .layout{grid-template-columns: 1fr}
+      .pill{margin-left:0}
+    }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div>
+      <div class="title">Airfield Briefs</div>
+      <div class="sub">Search ICAO, view brief, edit locally, export/import JSON.</div>
+    </div>
 
+    <div class="pill">
+      <button id="btnNew" class="accent">New Airfield</button>
+      <button id="btnExport">Export</button>
+      <button id="btnImport">Import</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="card">
+      <div class="k">Search</div>
+      <input id="q" placeholder="Type ICAO or name (e.g. EGSS / Stansted)" autocomplete="off"/>
+
+      <div class="row" style="margin-top:10px">
+        <div>
+          <div class="k">Filter tag</div>
+          <select id="tagFilter">
+            <option value="">(all)</option>
+          </select>
+        </div>
+        <div>
+          <div class="k">Sort</div>
+          <select id="sortMode">
+            <option value="icao">ICAO</option>
+            <option value="name">Name</option>
+            <option value="recent">Recent</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="k" style="margin-top:12px">Airfields</div>
+      <div class="list" id="list"></div>
+    </div>
+
+    <div class="card" id="detail">
+      <div class="sub">Select an airfield on the left, or create a new one.</div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const DATA_URL = "../data/airfields.json";
+  const LS_KEY = "efb_airfields_v1";
+  const LS_RECENT = "efb_airfields_recent";
+
+  const $ = (q) => document.querySelector(q);
+  const listEl = $("#list");
+  const detailEl = $("#detail");
+  const qEl = $("#q");
+  const tagEl = $("#tagFilter");
+  const sortEl = $("#sortMode");
+
+  let baseData = {};     // from JSON file
+  let localEdits = {};   // from localStorage (overrides)
+  let merged = {};       // combined
+  let selectedIcao = null;
+
+  function safeUpper(s){ return String(s||"").trim().toUpperCase(); }
+
+  function loadLocal(){
+    try { localEdits = JSON.parse(localStorage.getItem(LS_KEY) || "{}") || {}; }
+    catch { localEdits = {}; }
+  }
+  function saveLocal(){
+    localStorage.setItem(LS_KEY, JSON.stringify(localEdits));
+  }
+  function loadRecent(){
+    try { return JSON.parse(localStorage.getItem(LS_RECENT) || "[]") || []; }
+    catch { return []; }
+  }
+  function pushRecent(icao){
+    const rec = loadRecent().filter(x => x !== icao);
+    rec.unshift(icao);
+    localStorage.setItem(LS_RECENT, JSON.stringify(rec.slice(0, 25)));
+  }
+
+  function mergeAll(){
+    merged = { ...baseData, ...localEdits };
+  }
+
+  function tagsFromData(obj){
+    const set = new Set();
+    Object.values(obj).forEach(a => (a.tags || []).forEach(t => set.add(String(t))));
+    return [...set].sort((a,b)=>a.localeCompare(b));
+  }
+
+  function renderTagFilter(){
+    const cur = tagEl.value;
+    const tags = tagsFromData(merged);
+    tagEl.innerHTML = `<option value="">(all)</option>` + tags.map(t => `<option value="${escAttr(t)}">${esc(t)}</option>`).join("");
+    tagEl.value = tags.includes(cur) ? cur : "";
+  }
+
+  function filteredKeys(){
+    const q = qEl.value.trim().toLowerCase();
+    const tag = tagEl.value;
+
+    let keys = Object.keys(merged);
+
+    // filter by tag
+    if(tag){
+      keys = keys.filter(k => (merged[k].tags || []).includes(tag));
+    }
+
+    // search
+    if(q){
+      keys = keys.filter(k => {
+        const a = merged[k] || {};
+        const hay = [
+          k,
+          a.name || "",
+          (a.country || ""),
+          (a.tags || []).join(" "),
+          a.runways || ""
+        ].join(" ").toLowerCase();
+        return hay.includes(q);
+      });
+    }
+
+    // sort
+    const mode = sortEl.value;
+    if(mode === "name"){
+      keys.sort((a,b)=>(merged[a].name||"").localeCompare(merged[b].name||""));
+    } else if(mode === "recent"){
+      const rec = loadRecent();
+      const rank = new Map(rec.map((x,i)=>[x,i]));
+      keys.sort((a,b)=>{
+        const ra = rank.has(a) ? rank.get(a) : 99999;
+        const rb = rank.has(b) ? rank.get(b) : 99999;
+        if(ra !== rb) return ra - rb;
+        return a.localeCompare(b);
+      });
+    } else {
+      keys.sort((a,b)=>a.localeCompare(b));
+    }
+
+    return keys;
+  }
+
+  function renderList(){
+    const keys = filteredKeys();
+    listEl.innerHTML = keys.map(k => {
+      const a = merged[k] || {};
+      const nm = a.name || "(unnamed)";
+      const rw = a.runways ? ` • RWY ${esc(a.runways)}` : "";
+      const tags = (a.tags || []).slice(0,4).map(t => `<span class="badge">${esc(t)}</span>`).join(" ");
+      return `
+        <div class="item" data-icao="${escAttr(k)}">
+          <div class="icao">${esc(k)}</div>
+          <div class="nm">${esc(nm)}${rw}</div>
+          <div style="margin-top:6px; display:flex; gap:8px; flex-wrap:wrap">${tags}</div>
+        </div>
+      `;
+    }).join("") || `<div class="sub">No matches.</div>`;
+  }
+
+  function renderDetail(icao){
+    selectedIcao = icao;
+    if(!icao || !merged[icao]){
+      detailEl.innerHTML = `<div class="sub">Select an airfield on the left, or create a new one.</div>`;
+      return;
+    }
+    pushRecent(icao);
+
+    const a = merged[icao];
+    const comms = a.comms || {};
+    const links = Array.isArray(a.links) ? a.links : [];
+
+    detailEl.innerHTML = `
+      <div class="h">
+        <div>
+          <div class="icaoBig">${esc(icao)}</div>
+          <div class="sub">${esc(a.name || "")} • ${esc(a.country || "")}</div>
+        </div>
+        <div class="row" style="justify-content:flex-end">
+          <button id="btnSave" class="accent">Save</button>
+          <button id="btnReset">Reset</button>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <div class="k">Name</div>
+          <input id="f_name" value="${escAttr(a.name || "")}">
+        </div>
+        <div>
+          <div class="k">Country</div>
+          <input id="f_country" value="${escAttr(a.country || "")}" placeholder="GB / IE / FR ...">
+        </div>
+
+        <div>
+          <div class="k">Runways</div>
+          <input id="f_runways" value="${escAttr(a.runways || "")}" placeholder="e.g. 04/22">
+        </div>
+        <div>
+          <div class="k">Elevation (ft)</div>
+          <input id="f_elev" value="${escAttr(a.elevation_ft ?? "")}" inputmode="numeric" placeholder="e.g. 348">
+        </div>
+
+        <div>
+          <div class="k">Tags (comma separated)</div>
+          <input id="f_tags" value="${escAttr((a.tags || []).join(", "))}" placeholder="UK, BA, HOTSPOT ...">
+        </div>
+        <div>
+          <div class="k">Reminder / Gotcha</div>
+          <input id="f_gotcha" value="${escAttr(a.gotcha || "")}" placeholder="1-liner you want to see fast">
+        </div>
+      </div>
+
+      <div class="grid2" style="margin-top:10px">
+        <div>
+          <div class="k">Comms (ATIS)</div>
+          <input id="c_atis" value="${escAttr(comms.atis || "")}">
+        </div>
+        <div>
+          <div class="k">Comms (Ground)</div>
+          <input id="c_gnd" value="${escAttr(comms.ground || "")}">
+        </div>
+        <div>
+          <div class="k">Comms (Tower)</div>
+          <input id="c_twr" value="${escAttr(comms.tower || "")}">
+        </div>
+        <div>
+          <div class="k">Comms (Approach)</div>
+          <input id="c_app" value="${escAttr(comms.approach || "")}">
+        </div>
+      </div>
+
+      <div style="margin-top:10px">
+        <div class="k">Taxi / Parking / Stands</div>
+        <textarea id="f_parking">${esc(a.parking_taxi || "")}</textarea>
+      </div>
+
+      <div style="margin-top:10px">
+        <div class="k">Handling / Ops Notes</div>
+        <textarea id="f_handling">${esc(a.handling || "")}</textarea>
+      </div>
+
+      <div style="margin-top:10px">
+        <div class="k">Threats / Hotspots</div>
+        <textarea id="f_threats">${esc(a.threats || "")}</textarea>
+      </div>
+
+      <div style="margin-top:10px">
+        <div class="k">General Notes</div>
+        <textarea id="f_notes">${esc(a.notes || "")}</textarea>
+      </div>
+
+      <div style="margin-top:10px">
+        <div class="k">Links (one per line: Label | URL)</div>
+        <textarea id="f_links" class="mini" placeholder="Charts | https://...\nAIP | https://...">${esc(linksToText(links))}</textarea>
+        <div class="links" id="linkPreview"></div>
+      </div>
+
+      <div class="sub" style="margin-top:10px">
+        Saved edits are stored locally in your browser (localStorage). Use Export to back them up.
+      </div>
+    `;
+
+    const linksBox = $("#f_links");
+    const linkPreview = $("#linkPreview");
+
+    function updatePreview(){
+      const parsed = textToLinks(linksBox.value);
+      linkPreview.innerHTML = parsed.map(l => `
+        <a href="${escAttr(l.url)}" target="_blank" rel="noopener">
+          <span>${esc(l.label || l.url)}</span><span class="badge">open</span>
+        </a>
+      `).join("");
+    }
+    linksBox.addEventListener("input", updatePreview);
+    updatePreview();
+
+    $("#btnSave").onclick = () => {
+      const updated = collectForm(icao);
+      localEdits[icao] = updated;
+      saveLocal();
+      mergeAll();
+      renderTagFilter();
+      renderList();
+      renderDetail(icao);
+    };
+
+    $("#btnReset").onclick = () => {
+      // remove local override for this ICAO
+      if(localEdits[icao]) {
+        delete localEdits[icao];
+        saveLocal();
+        mergeAll();
+        renderTagFilter();
+        renderList();
+        renderDetail(icao);
+      }
+    };
+  }
+
+  function collectForm(icao){
+    const base = merged[icao] || {};
+    const elev = parseInt($("#f_elev").value.replace(/[^0-9]/g,"") || "", 10);
+    const tags = $("#f_tags").value.split(",").map(x=>x.trim()).filter(Boolean);
+
+    return {
+      ...base,
+      name: $("#f_name").value.trim(),
+      country: $("#f_country").value.trim(),
+      runways: $("#f_runways").value.trim(),
+      elevation_ft: Number.isFinite(elev) ? elev : null,
+      tags,
+      gotcha: $("#f_gotcha").value.trim(),
+      comms: {
+        atis: $("#c_atis").value.trim(),
+        ground: $("#c_gnd").value.trim(),
+        tower: $("#c_twr").value.trim(),
+        approach: $("#c_app").value.trim()
+      },
+      parking_taxi: $("#f_parking").value,
+      handling: $("#f_handling").value,
+      threats: $("#f_threats").value,
+      notes: $("#f_notes").value,
+      links: textToLinks($("#f_links").value)
+    };
+  }
+
+  function linksToText(arr){
+    return (arr||[]).map(x => `${x.label || ""} | ${x.url || ""}`.trim()).join("\n");
+  }
+  function textToLinks(text){
+    return String(text||"").split("\n")
+      .map(l => l.trim())
+      .filter(Boolean)
+      .map(line => {
+        const parts = line.split("|").map(x=>x.trim());
+        const label = parts[0] || "";
+        const url = parts[1] || parts[0] || "";
+        return { label, url };
+      })
+      .filter(x => x.url);
+  }
+
+  function esc(s){
+    return String(s ?? "")
+      .replaceAll("&","&amp;").replaceAll("<","&lt;")
+      .replaceAll(">","&gt;").replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+  function escAttr(s){ return esc(s).replaceAll("`","&#096;"); }
+
+  // New airfield
+  $("#btnNew").onclick = () => {
+    const icao = safeUpper(prompt("Enter ICAO (e.g. EGSS):") || "");
+    if(!/^[A-Z0-9]{3,5}$/.test(icao)) return;
+
+    if(!merged[icao]){
+      localEdits[icao] = {
+        name: "",
+        country: "",
+        tags: [],
+        runways: "",
+        elevation_ft: null,
+        comms: { atis:"", ground:"", tower:"", approach:"" },
+        parking_taxi: "",
+        handling: "",
+        notes: "",
+        threats: "",
+        links: []
+      };
+      saveLocal();
+      mergeAll();
+      renderTagFilter();
+      renderList();
+    }
+    renderDetail(icao);
+  };
+
+  // Export / Import
+  $("#btnExport").onclick = () => {
+    const payload = {
+      exported_at: new Date().toISOString(),
+      localEdits
+    };
+    const text = JSON.stringify(payload, null, 2);
+    navigator.clipboard?.writeText(text).catch(()=>{});
+    alert("Export copied to clipboard. Paste into a file to back it up.");
+  };
+
+  $("#btnImport").onclick = () => {
+    const raw = prompt("Paste exported JSON here:");
+    if(!raw) return;
+    try{
+      const obj = JSON.parse(raw);
+      if(obj && obj.localEdits && typeof obj.localEdits === "object"){
+        localEdits = obj.localEdits;
+        saveLocal();
+        mergeAll();
+        renderTagFilter();
+        renderList();
+        alert("Imported.");
+      } else {
+        alert("That JSON doesn't look like an export.");
+      }
+    }catch{
+      alert("Invalid JSON.");
+    }
+  };
+
+  // List click
+  listEl.addEventListener("click", (e) => {
+    const it = e.target.closest(".item[data-icao]");
+    if(!it) return;
+    renderDetail(it.dataset.icao);
+  });
+
+  // Search + filters
+  qEl.addEventListener("input", renderList);
+  tagEl.addEventListener("change", renderList);
+  sortEl.addEventListener("change", renderList);
+
+  // Boot: fetch base JSON
+  async function boot(){
+    loadLocal();
+    try{
+      const r = await fetch(DATA_URL, { cache: "no-store" });
+      if(!r.ok) throw new Error("fetch failed");
+      baseData = await r.json();
+    }catch{
+      baseData = {};
+      detailEl.innerHTML = `
+        <div class="sub">
+          <span class="warn">Could not load ${esc(DATA_URL)}.</span><br>
+          If you're running from file://, many browsers block fetch. Run a tiny local web server
+          or place this tool inside a hosted folder (e.g., GitHub Pages) like your other EFB bits.
+        </div>
+      `;
+    }
+    mergeAll();
+    renderTagFilter();
+    renderList();
+
+    // auto-open most recent
+    const rec = loadRecent();
+    if(rec[0] && merged[rec[0]]) renderDetail(rec[0]);
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
