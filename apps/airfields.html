@@ -519,11 +519,11 @@ function renderList(){
 
                 <div class="rwyMid">
                   <div class="midTop">
-                    <div>RwD: ${escapeHtml(runwayDimText(r))}</div>
+                    <div>RwD: ${esc(runwayDimText(r))}</div>
                     <div>App: ${appTags(r) || `<span class="tagPill">—</span>`}</div>
                   </div>
                   <div class="midBottom">
-                    <div>LDA: <b>${escapeHtml(ldaText(r))}</b></div>
+                    <div>LDA: <b>${esc(ldaText(r))}</b></div>
                     <div class="badge">${r.notes ? esc(r.notes) : ""}</div>
                   </div>
                 </div>
