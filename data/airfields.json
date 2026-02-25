@@ -41,8 +41,8 @@
     "links": [
       { "label": "Charts", "url": "https://example.com" }
     ]
-  },
-{
+  }
+},
   "EGKK": {
     "name": "London Gatwick",
     "country": "GB",
