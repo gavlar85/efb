@@ -443,22 +443,28 @@
     return "";
   }
 
-  function renderList(){
-    const keys = filteredKeys();
-    listEl.innerHTML = keys.map(k => {
-      const a = merged[k] || {};
-      const nm = a.name || "(unnamed)";
-      const rw = runwaysSummary(a) ? ` • RWY ${esc(runwaysSummary(a))}` : "";
-      const tags = (a.tags || []).slice(0,4).map(t => `<span class="badge">${esc(t)}</span>`).join(" ");
-      return `
-        <div class="item" data-icao="${escAttr(k)}">
-          <div class="icao">${esc(k)}</div>
-          <div class="nm">${esc(nm)}${rw}</div>
-          <div style="margin-top:6px; display:flex; gap:8px; flex-wrap:wrap">${tags}</div>
-        </div>
-      `;
-    }).join("") || `<div class="sub">No matches.</div>`;
-  }
+function renderList(){
+  const keys = filteredKeys();
+  listEl.innerHTML = keys.map(k => {
+    const a = merged[k] || {};
+    const nm = a.name || "(unnamed)";
+    const rw = runwaysSummary(a) ? ` • RWY ${esc(runwaysSummary(a))}` : "";
+    const tags = (a.tags || []).slice(0,4).map(t => `<span class="badge">${esc(t)}</span>`).join(" ");
+    return `
+      <div class="item" data-icao="${escAttr(k)}">
+        <div class="icao">${esc(k)}</div>
+        <div class="nm">${esc(nm)}${rw}</div>
+        <div style="margin-top:6px; display:flex; gap:8px; flex-wrap:wrap">${tags}</div>
+      </div>
+    `;
+  }).join("") || `<div class="sub">No matches.</div>`;
+
+  // NEW: bind clicks
+  listEl.querySelectorAll(".item[data-icao]").forEach(el => {
+    el.addEventListener("click", () => renderDetail(el.dataset.icao));
+    el.style.pointerEvents = "auto";
+  });
+}
 
   function renderDetail(icao){
     selectedIcao = icao;
@@ -858,13 +864,6 @@
       alert("Invalid JSON.");
     }
   };
-
-  // List click
-  listEl.addEventListener("click", (e) => {
-    const it = e.target.closest(".item[data-icao]");
-    if(!it) return;
-    renderDetail(it.dataset.icao);
-  });
 
   // Search + filters
   qEl.addEventListener("input", renderList);
