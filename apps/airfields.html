@@ -67,7 +67,7 @@
       border-radius: var(--radius);
       padding:12px;
     }
-    .sub{color:var(--muted); font-size:12px; margin:6px 0 0}
+    .sub{color:var(--muted); font-size:12px; margin:6px 0 0; line-height:1.35}
     .list{
       margin-top:10px;
       display:flex; flex-direction:column; gap:8px;
@@ -124,9 +124,169 @@
     .row{display:flex; gap:10px; flex-wrap:wrap}
     .row > *{flex:1; min-width:200px}
     .warn{color:#ffcc66}
+    .mini{font-family:var(--mono)}
+
+    /* --- Brief card (runway rectangles like your screenshot) --- */
+    .briefHeader{
+      display:grid;
+      grid-template-columns: 1fr auto auto;
+      gap:10px;
+      align-items:center;
+      padding:10px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.14);
+      margin-bottom:10px;
+    }
+    .briefHeader .big{
+      font-weight:900;
+      letter-spacing:.4px;
+    }
+    .briefHeader .meta{
+      font-family: var(--mono);
+      font-size:12px;
+      color: var(--muted);
+      white-space:nowrap;
+    }
+
+    .runwayStrip{
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:14px;
+      overflow:hidden;
+      background: rgba(0,0,0,.10);
+      margin-bottom:10px;
+    }
+    .runwayStripTop{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 12px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      font-family: var(--mono);
+      color: var(--muted);
+      font-size:12px;
+    }
+    .runwayBars{
+      display:grid;
+      gap:10px;
+      padding:12px;
+    }
+    .rwyBar{
+      display:grid;
+      grid-template-columns: 74px 1fr 74px;
+      gap:10px;
+      align-items:stretch;
+    }
+    .rwyEnd{
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;
+      background: rgba(255,255,255,.04);
+      padding:8px 8px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      text-align:center;
+    }
+    .rwyEnd .id{
+      font-family: var(--mono);
+      font-size:18px;
+      font-weight:900;
+      line-height:1.1;
+    }
+    .rwyEnd .cat{
+      font-size:11px;
+      color: var(--muted);
+      margin-top:4px;
+    }
+    .rwyMid{
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;
+      background: rgba(0,0,0,.18);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+    .rwyMid .midTop{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding:8px 10px;
+      font-family: var(--mono);
+      color: var(--muted);
+      font-size:12px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      flex-wrap:wrap;
+    }
+    .rwyMid .midBottom{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px;
+      font-family: var(--mono);
+      font-size:13px;
+      flex-wrap:wrap;
+    }
+    .tagPill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+      font-size:11px;
+    }
+
+    .depGrid{
+      display:grid;
+      grid-template-columns: 160px 1fr;
+      gap:10px;
+      margin-top:10px;
+      margin-bottom:12px;
+    }
+    .depBox{
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:14px;
+      padding:10px;
+      background: rgba(0,0,0,.14);
+    }
+    .depBadge{
+      display:inline-block;
+      padding:8px 10px;
+      border-radius:12px;
+      border:2px solid rgba(255,255,255,.18);
+      font-family: var(--mono);
+      font-weight:900;
+      letter-spacing:.4px;
+    }
+    .table{
+      width:100%;
+      border-collapse:collapse;
+      overflow:hidden;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .table th, .table td{
+      padding:10px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      font-family: var(--mono);
+      font-size:12px;
+      text-align:left;
+      vertical-align:top;
+    }
+    .table th{
+      color: var(--muted);
+      background: rgba(255,255,255,.03);
+    }
+    .table tr:last-child td{border-bottom:none;}
+
     @media (max-width: 980px){
       .layout{grid-template-columns: 1fr}
       .pill{margin-left:0}
+      .briefHeader{grid-template-columns: 1fr}
+      .depGrid{grid-template-columns: 1fr}
     }
   </style>
 </head>
@@ -134,7 +294,7 @@
   <div class="top">
     <div>
       <div class="title">Airfield Briefs</div>
-      <div class="sub">Search ICAO, view brief, edit locally, export/import JSON.</div>
+      <div class="sub">Search ICAO, view brief card, edit locally, export/import JSON.</div>
     </div>
 
     <div class="pill">
@@ -178,7 +338,7 @@
 <script>
 (() => {
   const DATA_URL = "../data/airfields.json";
-  const LS_KEY = "efb_airfields_v1";
+  const LS_KEY = "efb_airfields_v2";     // bumped because schema expanded
   const LS_RECENT = "efb_airfields_recent";
 
   const $ = (q) => document.querySelector(q);
@@ -235,12 +395,10 @@
 
     let keys = Object.keys(merged);
 
-    // filter by tag
     if(tag){
       keys = keys.filter(k => (merged[k].tags || []).includes(tag));
     }
 
-    // search
     if(q){
       keys = keys.filter(k => {
         const a = merged[k] || {};
@@ -249,13 +407,15 @@
           a.name || "",
           (a.country || ""),
           (a.tags || []).join(" "),
-          a.runways || ""
+          // legacy runways string support:
+          a.runways && typeof a.runways === "string" ? a.runways : "",
+          // new runways array support:
+          Array.isArray(a.runways) ? a.runways.map(r => [r.id, (r.approaches||[]).join(" ")].join(" ")).join(" ") : ""
         ].join(" ").toLowerCase();
         return hay.includes(q);
       });
     }
 
-    // sort
     const mode = sortEl.value;
     if(mode === "name"){
       keys.sort((a,b)=>(merged[a].name||"").localeCompare(merged[b].name||""));
@@ -275,12 +435,20 @@
     return keys;
   }
 
+  function runwaysSummary(a){
+    if(Array.isArray(a.runways) && a.runways.length){
+      return a.runways.map(r => r.id).filter(Boolean).join("/");
+    }
+    if(typeof a.runways === "string" && a.runways.trim()) return a.runways.trim();
+    return "";
+  }
+
   function renderList(){
     const keys = filteredKeys();
     listEl.innerHTML = keys.map(k => {
       const a = merged[k] || {};
       const nm = a.name || "(unnamed)";
-      const rw = a.runways ? ` • RWY ${esc(a.runways)}` : "";
+      const rw = runwaysSummary(a) ? ` • RWY ${esc(runwaysSummary(a))}` : "";
       const tags = (a.tags || []).slice(0,4).map(t => `<span class="badge">${esc(t)}</span>`).join(" ");
       return `
         <div class="item" data-icao="${escAttr(k)}">
@@ -300,21 +468,121 @@
     }
     pushRecent(icao);
 
-    const a = merged[icao];
+    const a = merged[icao] || {};
     const comms = a.comms || {};
     const links = Array.isArray(a.links) ? a.links : [];
+
+    const rwys = Array.isArray(a.runways) ? a.runways : [];
+    const dep = a.departure || {};
+    const eos = Array.isArray(dep.engine_out_sids) ? dep.engine_out_sids : [];
+
+    const runwayDimText = (r) => {
+      const len = r.tora_m ? `${r.tora_m} m` : "—";
+      const w = r.width_m ? ` x ${r.width_m} m` : "";
+      return `${len}${w}`;
+    };
+    const ldaText = (r) => (r.lda_m ? `${r.lda_m} m` : "NA");
+    const hdgText = (r) => (Number.isFinite(r.heading_deg) ? `${String(r.heading_deg).padStart(3,"0")}°` : "—");
+    const appTags = (r) => (Array.isArray(r.approaches) ? r.approaches : []).map(x => `<span class="tagPill">${esc(x)}</span>`).join(" ");
+
+    const briefHtml = `
+      <div class="briefHeader">
+        <div>
+          <div class="big">${esc(icao)} — ${esc(a.name || "")}${a.country ? ", " + esc(a.country) : ""}</div>
+          <div class="sub" style="margin:6px 0 0">Runway + departure card (JSON-driven).</div>
+        </div>
+        <div class="meta">Trans Alt: <b>${esc(a.transition_alt_ft ?? "—")}</b> ft</div>
+        <div class="meta">Elev: <b>${esc(a.elevation_ft ?? "—")}</b> ft</div>
+      </div>
+
+      <div class="runwayStrip">
+        <div class="runwayStripTop">
+          <div>Runways</div>
+          <div class="badge">RwD = runway dimensions • LDA = landing distance available</div>
+        </div>
+
+        <div class="runwayBars">
+          ${
+            rwys.length ? rwys.map(r => `
+              <div class="rwyBar">
+                <div class="rwyEnd">
+                  <div class="id">${esc(r.id || "—")}</div>
+                  <div class="cat">${esc(r.category || "")}</div>
+                  <div class="cat">${hdgText(r)}</div>
+                </div>
+
+                <div class="rwyMid">
+                  <div class="midTop">
+                    <div>RwD: ${escapeHtml(runwayDimText(r))}</div>
+                    <div>App: ${appTags(r) || `<span class="tagPill">—</span>`}</div>
+                  </div>
+                  <div class="midBottom">
+                    <div>LDA: <b>${escapeHtml(ldaText(r))}</b></div>
+                    <div class="badge">${r.notes ? esc(r.notes) : ""}</div>
+                  </div>
+                </div>
+
+                <div class="rwyEnd">
+                  <div class="id">${esc(r.id || "—")}</div>
+                  <div class="cat">${esc(r.category || "")}</div>
+                  <div class="cat">${hdgText(r)}</div>
+                </div>
+              </div>
+            `).join("") : `<div class="sub">No runway array yet. Add <span class="mini">runways: []</span> in JSON.</div>`
+          }
+        </div>
+      </div>
+
+      <div class="depGrid">
+        <div class="depBox">
+          <div class="depBadge">${esc(dep.nadp || "NADP —")}</div>
+          <div style="margin-top:10px">
+            <div class="badge">TR: <b>${esc(dep.thrust_reduction_ft ?? "—")}</b> ft</div><br>
+            <div class="badge">ACC: <b>${esc(dep.acceleration_ft ?? "—")}</b> ft</div>
+          </div>
+        </div>
+
+        <div class="depBox">
+          <div class="k">Engine Out SIDs (EOSID)</div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th style="width:90px">RWY</th>
+                <th style="width:120px">ACC (ft)</th>
+                <th>EOSID</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${
+                eos.length ? eos.map(x => `
+                  <tr>
+                    <td>${esc(x.runway || "—")}</td>
+                    <td>${esc(x.acc_ft ?? "—")}</td>
+                    <td>${esc(x.eosid || "—")}</td>
+                  </tr>
+                `).join("") : `
+                  <tr><td colspan="3" class="badge">No EOSID data yet.</td></tr>
+                `
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
 
     detailEl.innerHTML = `
       <div class="h">
         <div>
           <div class="icaoBig">${esc(icao)}</div>
-          <div class="sub">${esc(a.name || "")} • ${esc(a.country || "")}</div>
+          <div class="sub">${esc(a.name || "")}${a.country ? " • " + esc(a.country) : ""}</div>
         </div>
         <div class="row" style="justify-content:flex-end">
           <button id="btnSave" class="accent">Save</button>
           <button id="btnReset">Reset</button>
         </div>
       </div>
+
+      ${briefHtml}
 
       <div class="grid2">
         <div>
@@ -327,12 +595,12 @@
         </div>
 
         <div>
-          <div class="k">Runways</div>
-          <input id="f_runways" value="${escAttr(a.runways || "")}" placeholder="e.g. 04/22">
-        </div>
-        <div>
           <div class="k">Elevation (ft)</div>
           <input id="f_elev" value="${escAttr(a.elevation_ft ?? "")}" inputmode="numeric" placeholder="e.g. 348">
+        </div>
+        <div>
+          <div class="k">Transition Altitude (ft)</div>
+          <input id="f_ta" value="${escAttr(a.transition_alt_ft ?? "")}" inputmode="numeric" placeholder="e.g. 6000">
         </div>
 
         <div>
@@ -364,6 +632,19 @@
         </div>
       </div>
 
+      <div class="grid2" style="margin-top:10px">
+        <div>
+          <div class="k">NADP (e.g. NADP 1 / NADP 2)</div>
+          <input id="d_nadp" value="${escAttr(dep.nadp || "")}" placeholder="NADP 2">
+        </div>
+        <div>
+          <div class="k">TR ft / ACC ft (format: TR,ACC)</div>
+          <input id="d_tracc" value="${escAttr(
+            (dep.thrust_reduction_ft ?? "") + (dep.acceleration_ft ?? "" ? "," + dep.acceleration_ft : "")
+          )}" placeholder="1350,1350">
+        </div>
+      </div>
+
       <div style="margin-top:10px">
         <div class="k">Taxi / Parking / Stands</div>
         <textarea id="f_parking">${esc(a.parking_taxi || "")}</textarea>
@@ -391,7 +672,7 @@
       </div>
 
       <div class="sub" style="margin-top:10px">
-        Saved edits are stored locally in your browser (localStorage). Use Export to back them up.
+        Runway and EOSID arrays are displayed from JSON. (Next step: add UI buttons to edit runways/EOSIDs without touching JSON.)
       </div>
     `;
 
@@ -420,7 +701,6 @@
     };
 
     $("#btnReset").onclick = () => {
-      // remove local override for this ICAO
       if(localEdits[icao]) {
         delete localEdits[icao];
         saveLocal();
@@ -434,15 +714,33 @@
 
   function collectForm(icao){
     const base = merged[icao] || {};
-    const elev = parseInt($("#f_elev").value.replace(/[^0-9]/g,"") || "", 10);
+    const elev = parseInt(String($("#f_elev").value||"").replace(/[^0-9]/g,"") || "", 10);
+    const ta = parseInt(String($("#f_ta").value||"").replace(/[^0-9]/g,"") || "", 10);
     const tags = $("#f_tags").value.split(",").map(x=>x.trim()).filter(Boolean);
+
+    // TR/ACC parsing: "1350,1350"
+    let tr = null, acc = null;
+    const tracc = String($("#d_tracc").value || "").split(",").map(s => s.trim());
+    if(tracc[0]) {
+      const v = parseInt(tracc[0].replace(/[^0-9]/g,""), 10);
+      if(Number.isFinite(v)) tr = v;
+    }
+    if(tracc[1]) {
+      const v = parseInt(tracc[1].replace(/[^0-9]/g,""), 10);
+      if(Number.isFinite(v)) acc = v;
+    }
+
+    // Preserve runway/departure arrays if they already exist
+    const existingRunways = Array.isArray(base.runways) ? base.runways : (Array.isArray(merged[icao]?.runways) ? merged[icao].runways : []);
+    const existingDeparture = typeof base.departure === "object" && base.departure ? base.departure : (merged[icao]?.departure || {});
+    const existingEos = Array.isArray(existingDeparture.engine_out_sids) ? existingDeparture.engine_out_sids : [];
 
     return {
       ...base,
       name: $("#f_name").value.trim(),
       country: $("#f_country").value.trim(),
-      runways: $("#f_runways").value.trim(),
-      elevation_ft: Number.isFinite(elev) ? elev : null,
+      elevation_ft: Number.isFinite(elev) ? elev : (base.elevation_ft ?? null),
+      transition_alt_ft: Number.isFinite(ta) ? ta : (base.transition_alt_ft ?? null),
       tags,
       gotcha: $("#f_gotcha").value.trim(),
       comms: {
@@ -455,7 +753,17 @@
       handling: $("#f_handling").value,
       threats: $("#f_threats").value,
       notes: $("#f_notes").value,
-      links: textToLinks($("#f_links").value)
+      links: textToLinks($("#f_links").value),
+
+      // new structures (preserved unless you change the simple fields)
+      runways: existingRunways,
+      departure: {
+        ...existingDeparture,
+        nadp: $("#d_nadp").value.trim(),
+        thrust_reduction_ft: tr ?? existingDeparture.thrust_reduction_ft ?? null,
+        acceleration_ft: acc ?? existingDeparture.acceleration_ft ?? null,
+        engine_out_sids: existingEos
+      }
     };
   }
 
@@ -493,14 +801,24 @@
         name: "",
         country: "",
         tags: [],
-        runways: "",
         elevation_ft: null,
+        transition_alt_ft: null,
+
         comms: { atis:"", ground:"", tower:"", approach:"" },
         parking_taxi: "",
         handling: "",
         notes: "",
         threats: "",
-        links: []
+        links: [],
+
+        // new runway/departure structures
+        runways: [],
+        departure: {
+          nadp: "",
+          thrust_reduction_ft: null,
+          acceleration_ft: null,
+          engine_out_sids: []
+        }
       };
       saveLocal();
       mergeAll();
@@ -510,7 +828,7 @@
     renderDetail(icao);
   };
 
-  // Export / Import
+  // Export / Import (exports local overrides only)
   $("#btnExport").onclick = () => {
     const payload = {
       exported_at: new Date().toISOString(),
@@ -565,8 +883,8 @@
       detailEl.innerHTML = `
         <div class="sub">
           <span class="warn">Could not load ${esc(DATA_URL)}.</span><br>
-          If you're running from file://, many browsers block fetch. Run a tiny local web server
-          or place this tool inside a hosted folder (e.g., GitHub Pages) like your other EFB bits.
+          Ensure the file exists and the path is correct. If using GitHub Pages,
+          confirm <span class="mini">/data/airfields.json</span> opens directly in the browser.
         </div>
       `;
     }
